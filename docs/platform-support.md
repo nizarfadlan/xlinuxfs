@@ -78,6 +78,27 @@ The cache checks the LKL commit and tracked changes, build wrapper, compiler,
 SDK/linker identity, archive digest, and public headers. `--force` rebuilds.
 Build work and logs live under `_tmp/lkl-build/`; objects are removed on success.
 
+### Intel (x86_64) support
+
+Both Xcode targets pin `ARCHS` to `arm64 x86_64` and Release pins
+`ONLY_ACTIVE_ARCH=NO`, so Release builds are universal regardless of the host
+architecture. `scripts/verify-x86_64.sh` checks the built app, the embedded
+`lklfuse.appex`, and `libs/liblkl.a` with `lipo`; see
+[Build and development](build.md#intel-x86_64-builds).
+
+CI runs the same check in `.github/workflows/build-x86_64.yml`: a required
+x86_64 cross-compile on the `xcode-27` runner (no hosted Intel runner ships
+Xcode 27), plus a best-effort native build on `macos-15-intel`, the last
+hosted x86_64 image, available until August 2027. Both CI builds are
+unsigned, so they prove compilation, linking, and the architecture slices —
+not that a signed FSKit extension loads or mounts on Intel.
+
+Intel ceiling: macOS Tahoe 26 is the last macOS for Intel Macs, so the
+x86_64 slice targets macOS 15.4-26. The macOS 27-only workflows in the table
+above (in-app raw image mounting, explicit device mounting) are Apple
+Silicon only. Local x86_64 bridge tests run under Rosetta on Apple Silicon
+unless they are run on an Intel Mac.
+
 ## Verification
 
 For item lifetime, native xattrs, timestamps, file flags, volume names,
@@ -106,8 +127,9 @@ Test host: macOS 27.0 (26A428), Xcode 27.0 (27A266a), Apple Silicon.
   macOS 15 status-query branch is explicitly skipped on macOS 27.
 
 No physical Intel Mac, macOS 15/26 runtime, USB media, or automated SwiftUI
-interaction is covered by these results. Kernel code is not audited by this
-change.
+interaction is covered by these results. CI adds an unsigned native-Intel
+build only (best effort, no mount test) — see the Intel section above.
+Kernel code is not audited by this change.
 
 ```bash
 bash tests/run_bridge_platforms.sh /path/to/test-images
