@@ -55,6 +55,40 @@ The FSKit entitlement is restricted. A successful unsigned build does not prove
 that macOS will load or mount the extension; verify the signed embedded app and
 extension before system-mount testing.
 
+### Intel (x86_64) builds
+
+Both targets pin `ARCHS` to `arm64 x86_64`, and Release pins
+`ONLY_ACTIVE_ARCH=NO`, so a Release build is universal even when the project
+is opened in Xcode on a single-architecture Mac. Debug keeps the active
+architecture only (project-level `ONLY_ACTIVE_ARCH=YES`), for iteration speed.
+
+Build the x86_64-only slice explicitly:
+
+```sh
+bash scripts/build-liblkl.sh
+xcodebuild -project xlinuxfs.xcodeproj -scheme xlinuxfs \
+  -configuration Release \
+  -derivedDataPath _tmp/DerivedData-x86_64 \
+  ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO build
+bash scripts/verify-x86_64.sh \
+  _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app x86_64
+```
+
+`scripts/verify-x86_64.sh` checks with `lipo` that the app binary and the
+embedded `lklfuse.appex` contain exactly the expected architectures, and that
+`libs/liblkl.a` is universal. Pass `arm64 x86_64` instead of `x86_64` to
+verify a universal build.
+
+CI covers the same check in `.github/workflows/build-x86_64.yml`: a required
+cross-compile job on the `xcode-27` runner (GitHub has no Intel runner with
+Xcode 27), plus a best-effort native build on `macos-15-intel`, the last
+hosted x86_64 image, available until August 2027. Both CI builds are
+unsigned; signed system-mount testing on Intel stays a local step.
+
+Intel ceiling: macOS Tahoe 26 is the last macOS for Intel Macs, so the
+x86_64 slice targets macOS 15.4-26. The macOS 27-only features in the README
+are Apple Silicon only.
+
 ## Validation
 
 Run the bridge and direct FSKit capability checks against disposable fixture

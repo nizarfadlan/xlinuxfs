@@ -1,0 +1,146 @@
+# Build the x86_64 (Intel Mac) slice of xlinuxfs and verify it with `lipo`.
+#
+# Two jobs, two different guarantees:
+#
+# - `build-x86_64-cross` (required gate): cross-compiles the x86_64-only app
+#   on the `xcode-27` arm64 runner, which carries the Xcode 27 toolchain this
+#   repo requires. GitHub has no Intel runner with Xcode 27, so the
+#   x86_64 slice can only be produced this way in CI.
+# - `build-x86_64-native-intel` (best effort): builds natively on a real
+#   Intel CPU via `macos-15-intel`, the last GitHub-hosted x86_64 macOS
+#   image, available until August 2027. Its Xcode is older than the Xcode 27
+#   this repo requires, so the job is `continue-on-error` and is not a merge
+#   gate; it proves the slice builds and links on Intel hardware while the
+#   image still exists. After August 2027 it must be dropped (or moved to a
+#   self-hosted Intel Mac) — there will be no hosted Intel runner left.
+#
+# Both jobs produce UNSIGNED builds (`CODE_SIGNING_ALLOWED=NO`). That proves
+# compilation, linking, and the architecture slices, but not that macOS will
+# load the FSKit extension: loading requires a signed app/extension with the
+# File System Module capability, which CI does not have. Signed system-mount
+# testing stays a local step on a Mac with a provisioning profile.
+#
+# Intel macOS ceiling: macOS Tahoe 26 is the last macOS for Intel Macs, so
+# the x86_64 slice targets macOS 15.4-26. The macOS 27-only features in the
+# README are Apple Silicon only.
+name: Build x86_64 (Intel)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'xlinuxfs/**'
+      - 'lklfuse/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'vendor/lkl'
+      - 'xlinuxfs.xcodeproj/**'
+      - '.github/workflows/build-x86_64.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'xlinuxfs/**'
+      - 'lklfuse/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'vendor/lkl'
+      - 'xlinuxfs.xcodeproj/**'
+      - '.github/workflows/build-x86_64.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-x86_64-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-x86_64-cross:
+    name: x86_64 cross-compile (Xcode 27)
+    runs-on: xcode-27
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          sw_vers
+          uname -m
+
+      - name: Install LLVM 19
+        run: |
+          brew install llvm@19
+          echo "LKL_CLANG=$(brew --prefix llvm@19)/bin/clang" >> "$GITHUB_ENV"
+
+      - name: Build liblkl (universal archive)
+        run: bash scripts/build-liblkl.sh
+
+      - name: Build app (x86_64 only, unsigned)
+        run: |
+          xcodebuild -project xlinuxfs.xcodeproj -scheme xlinuxfs \
+            -configuration Release \
+            -derivedDataPath _tmp/DerivedData-x86_64 \
+            ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO build
+
+      - name: Verify x86_64 slices
+        run: |
+          bash scripts/verify-x86_64.sh \
+            _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app x86_64
+
+      - name: Upload unsigned x86_64 app
+        uses: actions/upload-artifact@v4
+        with:
+          name: xlinuxfs-x86_64-unsigned
+          path: _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app
+          if-no-files-found: error
+          retention-days: 7
+
+  build-x86_64-native-intel:
+    name: x86_64 native build (macos-15-intel, best effort)
+    runs-on: macos-15-intel
+    timeout-minutes: 120
+    # Best effort only: this image ships Xcode older than the Xcode 27 the
+    # repo requires, and the image itself retires in August 2027.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          sw_vers
+          uname -m
+
+      - name: Install LLVM 19
+        run: |
+          brew install llvm@19
+          echo "LKL_CLANG=$(brew --prefix llvm@19)/bin/clang" >> "$GITHUB_ENV"
+
+      - name: Build liblkl (universal archive)
+        run: bash scripts/build-liblkl.sh
+
+      - name: Build app (x86_64 only, unsigned)
+        run: |
+          xcodebuild -project xlinuxfs.xcodeproj -scheme xlinuxfs \
+            -configuration Release \
+            -derivedDataPath _tmp/DerivedData-x86_64 \
+            ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO CODE_SIGNING_ALLOWED=NO build
+
+      - name: Verify x86_64 slices
+        run: |
+          bash scripts/verify-x86_64.sh \
+            _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app x86_64
+
+      - name: Upload unsigned x86_64 app (native Intel build)
+        uses: actions/upload-artifact@v4
+        with:
+          name: xlinuxfs-x86_64-unsigned-native-intel
+          path: _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app
+          if-no-files-found: error
+          retention-days: 7

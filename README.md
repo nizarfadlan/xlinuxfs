@@ -30,7 +30,7 @@ and eject it when finished.
 - **Physical drives and disk images** - handle Linux USB drives, external disks, SSDs, partitions, and supported raw images.
 - **Finder-compatible volumes** - mounted volumes appear under `/Volumes` and can be used by normal Mac applications.
 - **Clear status and diagnostics** - inspect the filesystem, mount path, access mode, extension state, and common setup issues.
-- **Apple Silicon and Intel** - universal builds support `arm64` and `x86_64`, with macOS 15.4 or later.
+- **Apple Silicon and Intel** - universal builds support `arm64` and `x86_64`, with macOS 15.4 or later. Intel Macs run macOS 15.4-26 (Tahoe is the last macOS for Intel); macOS 27+ is Apple Silicon only.
 - **Open source and local** - source, tests, compatibility notes, and privacy policy are available in this repository; normal operation does not upload your files.
 
 ## Who is it for?
@@ -65,7 +65,8 @@ the sandbox cannot perform that operation directly.
 | macOS 27+ | Adds in-app raw image mounting and explicit device mounting with read-only/read-write selection. |
 
 The exact workflow depends on the macOS version, extension state, device type,
-partition layout, and whether the underlying media is writable.
+partition layout, and whether the underlying media is writable. On Intel Macs
+the ceiling is macOS 26; the macOS 27 rows do not apply there.
 
 ## Supported filesystems and limits
 
@@ -100,7 +101,7 @@ maintainers.
 ## Documentation
 
 - [Architecture and code structure](docs/architecture.md)
-- [Build and development](docs/build.md)
+- [Build and development](docs/build.md) (including [Intel x86_64 builds](docs/build.md#intel-x86_64-builds))
 - [Platform support and verification](docs/platform-support.md)
 - [Filesystem capabilities and limits](docs/filesystem-capabilities.md)
 - [Privacy policy](PRIVACY.md)
