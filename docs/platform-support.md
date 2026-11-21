@@ -102,6 +102,16 @@ above (in-app raw image mounting, explicit device mounting) are Apple
 Silicon only. Local x86_64 bridge tests run under Rosetta on Apple Silicon
 unless they are run on an Intel Mac.
 
+Extension registration needs the app to live in `/Applications` and to be
+signed. A build launched from a download runs under App Translocation from
+a random path such as `/private/var/folders/.../T/AppTranslocation/.../`,
+and macOS does not register its extension there — System Settings shows no
+xlinuxfs entry (only Apple's own exfat/msdos) and the app reports
+`Registered copies: unknown`. Move the app to `/Applications` and launch it
+from there. An unsigned CI build still cannot register even then, because
+FSKit extensions need a signed build with the File System Module
+capability; for actual mounting use the signed App Store build.
+
 ## Verification
 
 For item lifetime, native xattrs, timestamps, file flags, volume names,

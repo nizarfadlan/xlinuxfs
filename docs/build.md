@@ -96,6 +96,27 @@ Intel ceiling: macOS Tahoe 26 is the last macOS for Intel Macs, so the
 x86_64 slice targets macOS 15.4-26. The macOS 27-only features in the README
 are Apple Silicon only.
 
+### Release (Intel x86_64)
+
+Workflow artifacts are not a download channel: GitHub always wraps an
+artifact download in a `.zip`. Published builds go out as GitHub Releases
+instead — release assets download with their exact filename.
+
+`.github/workflows/release.yml` builds the x86_64-only app on the `xcode-27`
+runner, packages it as `xlinuxfs-x86_64.dmg`, and attaches the `.dmg` plus a
+SHA-256 checksum to the release. Trigger it after merging, by tagging:
+
+```sh
+git tag v1.0.4-x86_64
+git push origin v1.0.4-x86_64
+```
+
+The release is unsigned: mount the `.dmg`, drag `xlinuxfs.app` to
+`/Applications`, and launch it from there. An unsigned build's FSKit
+extension cannot register in System Settings — see
+[Platform support](platform-support.md#intel-x86_64-support) — so a release
+build proves the app runs, not that the extension mounts volumes.
+
 ## Validation
 
 Run the bridge and direct FSKit capability checks against disposable fixture
