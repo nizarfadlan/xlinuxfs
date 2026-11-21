@@ -79,6 +79,13 @@ embedded `lklfuse.appex` contain exactly the expected architectures, and that
 `libs/liblkl.a` is universal. Pass `arm64 x86_64` instead of `x86_64` to
 verify a universal build.
 
+CI packages the built app into `xlinuxfs-x86_64.dmg` with
+`scripts/package-x86_64.sh` before uploading it. GitHub always downloads
+artifacts as a `.zip`, so the download unzips to the `.dmg`; mount the image
+and drag the `.app` out. Uploading the raw `.app` does not work for this:
+a `.app` is a directory, so the download comes back as a zip instead of a
+usable app.
+
 CI covers the same check in `.github/workflows/build-x86_64.yml`: a required
 cross-compile job on the `xcode-27` runner (GitHub has no Intel runner with
 Xcode 27), plus a best-effort native build on `macos-15-intel`, the last

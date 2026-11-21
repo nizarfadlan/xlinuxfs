@@ -91,7 +91,10 @@ x86_64 cross-compile on the `xcode-27` runner (no hosted Intel runner ships
 Xcode 27), plus a best-effort native build on `macos-15-intel`, the last
 hosted x86_64 image, available until August 2027. Both CI builds are
 unsigned, so they prove compilation, linking, and the architecture slices —
-not that a signed FSKit extension loads or mounts on Intel.
+not that a signed FSKit extension loads or mounts on Intel. CI uploads the
+build as a `.dmg` (see [Build and development](build.md#intel-x86_64-builds)):
+a GitHub artifact download always arrives as a `.zip`, so unzip once to get
+the `.dmg`, then mount it to reach the `.app`.
 
 Intel ceiling: macOS Tahoe 26 is the last macOS for Intel Macs, so the
 x86_64 slice targets macOS 15.4-26. The macOS 27-only workflows in the table
