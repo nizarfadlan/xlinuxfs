@@ -20,6 +20,12 @@
 # File System Module capability, which CI does not have. Signed system-mount
 # testing stays a local step on a Mac with a provisioning profile.
 #
+# Artifacts are packaged as a .dmg, not the raw .app: a .app is a directory,
+# so GitHub zips it on artifact download and the extension comes back wrong.
+# A .dmg is a single file, so the download unzips to xlinuxfs-x86_64.dmg,
+# which mounts and contains the .app. GitHub still wraps the download in
+# its own .zip, so it is unzip once, then mount the .dmg.
+#
 # Intel macOS ceiling: macOS Tahoe 26 is the last macOS for Intel Macs, so
 # the x86_64 slice targets macOS 15.4-26. The macOS 27-only features in the
 # README are Apple Silicon only.
@@ -91,11 +97,17 @@ jobs:
           bash scripts/verify-x86_64.sh \
             _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app x86_64
 
-      - name: Upload unsigned x86_64 app
+      - name: Package .dmg
+        run: |
+          bash scripts/package-x86_64.sh \
+            _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app \
+            _tmp/xlinuxfs-x86_64.dmg
+
+      - name: Upload unsigned x86_64 dmg
         uses: actions/upload-artifact@v4
         with:
-          name: xlinuxfs-x86_64-unsigned
-          path: _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app
+          name: xlinuxfs-x86_64-dmg
+          path: _tmp/xlinuxfs-x86_64.dmg
           if-no-files-found: error
           retention-days: 7
 
@@ -137,10 +149,16 @@ jobs:
           bash scripts/verify-x86_64.sh \
             _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app x86_64
 
-      - name: Upload unsigned x86_64 app (native Intel build)
+      - name: Package .dmg
+        run: |
+          bash scripts/package-x86_64.sh \
+            _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app \
+            _tmp/xlinuxfs-x86_64.dmg
+
+      - name: Upload unsigned x86_64 dmg (native Intel build)
         uses: actions/upload-artifact@v4
         with:
-          name: xlinuxfs-x86_64-unsigned-native-intel
-          path: _tmp/DerivedData-x86_64/Build/Products/Release/xlinuxfs.app
+          name: xlinuxfs-x86_64-dmg-native-intel
+          path: _tmp/xlinuxfs-x86_64.dmg
           if-no-files-found: error
           retention-days: 7
